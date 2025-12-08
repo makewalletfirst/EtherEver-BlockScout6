@@ -1,7 +1,6 @@
 version: '3.4'
 
 services:
-  # ... (redis-db, db-init, db 등 기존 서비스는 그대로 유지) ...
   redis-db:
     extends:
       file: ./services/redis.yml
@@ -20,25 +19,17 @@ services:
       file: ./services/db.yml
       service: db
 
-  # === [수정됨: 스마트 컨트랙트 검증기] ===
-  smart-contract-verifier:
-    image: ghcr.io/blockscout/smart-contract-verifier:latest
-    restart: always
-    container_name: smart-contract-verifier
-    environment:
-      # [중요] 최신 버전은 ADDR 대신 HTTP__ADDR와 GRPC__ADDR로 명확히 나눠야 에러가 안 납니다.
-      SMART_CONTRACT_VERIFIER__SERVER__HTTP__ADDR: 0.0.0.0:8053
-      SMART_CONTRACT_VERIFIER__SERVER__GRPC__ADDR: 0.0.0.0:8054
-    expose:
-      - "8053"
-      - "8054"
-
   backend:
+    # [수정됨] 방금 빌드한 커스텀 이미지를 사용
+    #image: my-blockscout:custom
     image: silverruler/etherever-blockscout:v1.1
+    # 이제 인터넷에서 받아와야 하므로 pull_policy: never는 삭제하거나 주석 처리
+    # [수정됨] Docker Hub에서 찾지 않고 로컬 이미지를 강제로 사용
+    #pull_policy: never
+
     depends_on:
       - db
       - redis-db
-      - smart-contract-verifier
     extends:
       file: ./services/backend.yml
       service: backend
@@ -46,43 +37,49 @@ services:
     links:
       - db:database
     environment:
+      #BLOCK_REWARDS: '{"0": "2000000000000000000"}'
       FIRST_BLOCK: '0'
+
       INDEXER_TOKEN_INSTANCE_BLACKLIST: '["0x3ddb8784f60c723aa6b8ba76a3eea54776e1e821","0xf272f53d35d37d680502549b66bdc8dc43c0078d","0xb6fe398f94406c298c5cca9efc3670994c0ad409","0x6a3625143c7508742ed58697dd5ab9fcfcc78df8"]'
+
       ETHEREUM_JSONRPC_VARIANT: 'parity'
+      #INDEXER_CATCHUP_BLOCKS_BATCH_SIZE: '1'
+
       ETHEREUM_JSONRPC_HTTP_URL: http://172.17.0.1:8545/
       ETHEREUM_JSONRPC_WS_URL: ws://172.17.0.1:8546/
       CHAIN_ID: '58051'
+
       INDEXER_CATCHUP_ENABLED: 'true'
       INDEXER_CATCHUP_SILENT_ERRORS: 'true'
+
       INDEXER_TOKEN_TRANSFERS_ENABLE: 'true'
       INDEXER_TOKEN_TRANSFERS_CATCHUP_ENABLED: 'true'
+
       INDEXER_DISABLE_INTERNAL_TRANSACTIONS: 'true'
       ECT_FETCH_INTERNAL_TRANSACTIONS: 'false'
+
       BLOCK_REWARDS: |
         {
           "0": "2000000000000000000",
           "1000000000": "2000000000000000000"
         }
+
       COIN: 'ETE'
       COIN_NAME: 'EtherEver'
       DISABLE_EXCHANGE_RATES: 'true'
 
+
       # === [DB 설정] ===
       DATABASE_URL: postgresql://blockscout:ceWb1MeLBEeOIfk65gU8EjF8@db:5432/blockscout?ssl=false
 
-      # === [수정됨: 백엔드와 검증기 연결 설정] ===
+      # === [기타] ===
       MICROSERVICE_SC_VERIFIER_ENABLED: 'false'
-      # 위에서 설정한 8053 포트로 연결합니다.
-      MICROSERVICE_SC_VERIFIER_URL: 'http://smart-contract-verifier:8053'
-      MICROSERVICE_SC_VERIFIER_TYPE: 'http'
-
       MICROSERVICE_STATS_ENABLED: 'true'
       MICROSERVICE_STATS_URL: 'http://stats:8050/api'
 
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
-  # ... (나머지 visualizer, sig-provider, frontend 등은 기존 파일 유지) ...
   visualizer:
     extends:
       file: ./services/visualizer.yml
@@ -161,6 +158,3 @@ services:
     extends:
       file: ./services/nginx.yml
       service: proxy
-
-    ports:
-      - "4002:80"

@@ -1,0 +1,50 @@
+name: Docker Build Check
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    # [핵심 변경] 모든 명령어는 'docker-compose' 폴더 안에서 실행한다
+    defaults:
+      run:
+        working-directory: ./docker-compose
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # .env 파일도 docker-compose 폴더 안에 만들어야 인식합니다.
+    - name: Create .env file
+      run: |
+        if [ -f .env.common ]; then
+          cp .env.common .env
+        elif [ -f .env.example ]; then
+          cp .env.example .env
+        else
+          echo "No example env file found, creating dummy .env"
+          touch .env
+        fi
+
+    - name: Check Docker Compose Config
+      run: docker compose config
+
+    # 빌드 테스트 (시간이 너무 오래 걸리면 이 단계는 지워도 됩니다)
+    - name: Test Docker Compose Up
+      run: docker compose up -d --build
+
+    - name: Check Running Containers
+      run: |
+        sleep 10
+        docker compose ps
+        if [ $(docker compose ps -q | wc -l) -gt 0 ]; then
+          echo "Containers are running!"
+        else
+          echo "No containers running!"
+          exit 1
+        fi
