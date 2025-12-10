@@ -34,11 +34,7 @@ services:
       - "8054"
 
   backend:
-    #image: silverruler/etherever-blockscout:v1.5
-    image: my-custom-backend:latest
-    build:
-      context: .
-      dockerfile: Dockerfile.backend
+    image: silverruler/etherever-blockscout:v1.5
     depends_on:
       - db
       - redis-db

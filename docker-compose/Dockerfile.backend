@@ -1,0 +1,14 @@
+# 1. 사용자님이 현재 사용 중인 이미지를 베이스로 가져옵니다.
+FROM silverruler/etherever-blockscout:v1.5
+
+# 2. 루트 권한으로 패키지를 설치합니다.
+USER root
+
+# 3. Node.js와 NPM을 설치합니다.
+RUN apk add --no-cache nodejs npm
+
+# 4. 앱 디렉토리에서 solc를 설치합니다.
+WORKDIR /app
+RUN npm install solc
+
+# (선택) 다시 원래 유저 권한으로 돌릴 필요가 있다면 설정 (보통 root로 돌리시니 생략 가능)
