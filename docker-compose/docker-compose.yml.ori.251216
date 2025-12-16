@@ -116,9 +116,6 @@ services:
       NEXT_PUBLIC_STATS_API_HOST: 'http://163.239.27.33:4552/stats_api'
       API_URL: 'http://backend:4000'
       STATS_API_URL: 'http://stats:8050'
-  # fixed_envs.js 파일이 docker-compose.yml 옆에 있어야 합니다.
-    volumes:
-      - ./fixed_envs.js:/app/public/assets/envs.js
 
   stats-db-init:
     extends:
